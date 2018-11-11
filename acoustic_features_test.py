@@ -1,6 +1,6 @@
 import pyaudio
 import numpy as np
-import acoustic_features
+from acoustic_features import acoustic_features
 import pickle
 
 if __name__ == "__main__":
@@ -13,3 +13,4 @@ if __name__ == "__main__":
     while True:
         data_chunk = np.fromstring(mic.read(1024), dtype=np.int16)
         [has_input, pitch_percent, best_formant] = af.getProcessedInputs(data_chunk)
+        #print(best_formant)
