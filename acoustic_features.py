@@ -5,6 +5,7 @@ import webrtcvad
 from scipy.spatial import distance
 import math
 import pickle
+from scipy import signal
 
 class acoustic_features:
     def __init__(self, formant_space={'A':None, 'EE':None, 'E':None, 'O':None, 'OO':None, 'OA':None}, Fs=16000, numPitchSeg=2, tolerance=0, minPitch=np.nan, maxPitch=np.nan):
@@ -71,7 +72,16 @@ class acoustic_features:
         return formants[0:3]
 
     def getPitch(self, x):
-        return 0
+        # first of all we remove the horizontal offset
+        x = x - np.mean(x)
+        # now we calculate the autocorrelation of the signal against itself but inverted in time
+        # and we throw away negative lags
+        corr = signal.fftconvolve(x, x[::-1], mode='full')
+        corr = corr[:round((len(corr)/2)-1)]
+        diff = np.diff(corr)
+        n = [i for i in range(0, len(diff)) if diff[i] > 0][0]
+        peak = np.argmax(corr[n:]) + n
+        return self.Fs / peak
 
     def getRawInput(self, x):
         has_input = False
