@@ -68,7 +68,7 @@ class acoustic_features:
         for f, b in zip(frqs, bw):
             if f > 90 and b < 400:
                 formants.append(f)
-        return formants
+        return formants[0:3]
 
     def getPitch(self, x):
         return 0
