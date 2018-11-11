@@ -153,6 +153,5 @@ class VSE():
                 return 1, formants
         return 0, []
 if __name__ == '__main__':
-    # pickle.load(open('formant_vals.pickle','rb'))
     al = VSE()
     al.start()

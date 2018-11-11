@@ -2,19 +2,38 @@ import numpy as np
 from  audiolazy import lazy_lpc
 from scipy.signal import lfilter
 import webrtcvad
-from sklearn.cluster import KMeans
-from sklearn import datasets
 from scipy.spatial import distance
+import math
+import pickle
 
 class acoustic_features:
-    def __init__(self, config):
-        self.config = config
-        self.Fs = config['Fs']
-        self.numPitchSeg = config['numPitchSeg']
+    def __init__(self, formant_space={'A':None, 'EE':None, 'E':None, 'O':None, 'OO':None, 'OA':None}, Fs=16000, numPitchSeg=2, tolerance=0, minPitch=np.nan, maxPitch=np.nan):
+        self.formant_space = formant_space
+        self.Fs = Fs
+        self.numPitchSeg = numPitchSeg
         self.vad = webrtcvad.Vad()
         self.vad.set_mode(1)
-        self.kmean = KMeans(n_clusters=6)
+        self.tolerance = tolerance
+        self.minPitch = minPitch
+        self.maxPitch = maxPitch
         self.vowels = ['A', 'EE', 'E', 'O', 'OO', 'OA']
+
+    def loadConfigFromFile(self, filePath):
+        config = pickle.load(open(filePath, 'rb'))
+        self.loadFormantSpace('A', config['A'])
+        self.loadFormantSpace('EE', config['EE'])
+        self.loadFormantSpace('E', config['E'])
+        self.loadFormantSpace('O', config['O'])
+        self.loadFormantSpace('OO', config['OO'])
+        self.loadFormantSpace('OA', config['OA'])
+        self.minPitch = config['minPitch']
+        self.maxPitch = config['maxPitch']
+
+    def loadFormantSpace(self, vowel, formants):
+        if vowel in self.formant_space:
+            self.formant_space[vowel] = formants
+        else:
+            print("ERROR %s is not a recognized vowel"%vowel)
 
     def has_speech(self, x):
         has_speech1 = self.vad.is_speech(x[0:480].tobytes(), self.Fs)
@@ -31,7 +50,6 @@ class acoustic_features:
         x1 = lfilter([1], [1., 0.63], x1)
 
         # Get LPC.
-
         rts = lazy_lpc.lpc(x1, int((self.Fs / 1000) + 2)).zeros
 
         # Get roots.
@@ -53,8 +71,7 @@ class acoustic_features:
         return formants
 
     def getPitch(self, x):
-        #MAZHER ADD CODE HERE
-        pass
+        return 0
 
     def getRawInput(self, x):
         has_input = False
@@ -70,22 +87,34 @@ class acoustic_features:
 
     def getProcessedInputs(self, x):
         [has_input, pitch, formants] = self.getRawInput(self, x)
-        pitch_percent = (pitch - self.config['minPitch'])/(self.config['maxPitch']- self.config['minPitch'])
+        if math.isnan(self.minPitch) and math.isnan(self.maxPitch):
+            pitch_percent = (pitch - self.minPitch)/(self.maxPitch- self.minPitch)
+        else:
+            pitch_percent = -1
 
         best_formant = 'N'
         if len(formants) >= 3:
-            dist = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
-            dist[0] = min(distance.cdist(formants[0:3], self.config['A_matrix']))
-            dist[1] = min(distance.cdist(formants[0:3], self.config['EE_matrix']))
-            dist[2] = min(distance.cdist(formants[0:3], self.config['E_matrix']))
-            dist[3] = min(distance.cdist(formants[0:3], self.config['O_matrix']))
-            dist[4] = min(distance.cdist(formants[0:3], self.config['OO_matrix']))
-            dist[5] = min(distance.cdist(formants[0:3], self.config['OA_matrix']))
+            dist = np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
+            if self.formant_space['A']:
+                dist[0] = min(distance.cdist(formants[0:3], self.formant_space['A']))
+            if self.formant_space['EE']:
+                dist[1] = min(distance.cdist(formants[0:3], self.formant_space['EE']))
+            if self.formant_space['E']:
+                dist[2] = min(distance.cdist(formants[0:3], self.formant_space['E']))
+            if self.formant_space['O']:
+                dist[3] = min(distance.cdist(formants[0:3], self.formant_space['O']))
+            if self.formant_space['OO']:
+                dist[4] = min(distance.cdist(formants[0:3], self.formant_space['OO']))
+            if self.formant_space['OA']:
+                dist[5] = min(distance.cdist(formants[0:3], self.formant_space['OA']))
             closest_phoneme_index = np.argmin(dist)
-            if dist[closest_phoneme_index] <= self.config['tolerance']:
+
+            dist_inv = np.power(dist, -1.0)
+            conf = max(np.divide(dist_inv, sum(dist_inv)))
+
+            if math.isnan(conf) or conf >= self.tolerance:
                 best_formant = self.vowels[closest_phoneme_index]
         return [has_input, pitch_percent, best_formant]
 
 if __name__ == "__main__":
-    iris = datasets.load_iris()
-    print(iris)
+    pass
