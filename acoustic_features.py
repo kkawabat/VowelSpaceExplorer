@@ -77,7 +77,7 @@ class acoustic_features:
         # now we calculate the autocorrelation of the signal against itself but inverted in time
         # and we throw away negative lags
         corr = signal.fftconvolve(x, x[::-1], mode='full')
-        corr = corr[:round((len(corr)/2)-1)]
+        corr = corr[:int(round((len(corr)/2)-1))]
         diff = np.diff(corr)
         n = [i for i in range(0, len(diff)) if diff[i] > 0][0]
         peak = np.argmax(corr[n:]) + n

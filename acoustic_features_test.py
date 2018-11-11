@@ -5,7 +5,7 @@ import pickle
 
 def formant_test():
     af = acoustic_features()
-    af.loadConfigFromFile('dummy_config.pickle')
+    af.loadConfigFromFile('dummy_config2.pickle')
 
     mic = pyaudio.PyAudio().open(format=pyaudio.paInt16, channels=1, rate=16000, input=True,
                                  frames_per_buffer=1024)
@@ -16,7 +16,8 @@ def formant_test():
 
 def pitch_test():
     af = acoustic_features()
-    af.loadConfigFromFile('dummy_config.pickle')
+    af.loadConfigFromFile('dummy_config2.pickle')
+
 
     mic = pyaudio.PyAudio().open(format=pyaudio.paInt16, channels=1, rate=16000, input=True,
                                  frames_per_buffer=1024)
@@ -27,13 +28,13 @@ def pitch_test():
 
 def pickle_demo():
     #to load from a pickle file to a variable
-    myConfig = pickle.load(open('dummy_config.pickle', 'rb'))
+    myConfig = pickle.load(open('dummy_config2.pickle', 'rb'))
 
     #config file should be in this format
     print(myConfig)
 
     #to write to a pickle file
-    pickle.dump(myConfig, open('dummy_config2.pickle', 'wb'))
+    pickle.dump(myConfig, open('dummy_config2.pickle', 'wb'), protocol = 2)
 
 
 if __name__ == "__main__":
